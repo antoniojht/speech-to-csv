@@ -42,18 +42,17 @@ public class Transcriber {
 	}
 
 	private static final String SENTENCE = "en breves momentos le atenderemos";
-	private static final String PATH_TO_CSV = System.getProperty("user.dir");
-	private static final String PATH_GOOGLE_CREDENTIALS_JSON = "/home/ajherrera/Escritorio/speechtranscriber-321809-22a5f801cacd.json";
+	private static final String PATH_TO_CSV = System.getProperty("user.dir");	
 	private static final Logger LOGGER = Logger.getLogger("[Transcriber log]");
 
-	public static Map<String, String> transcribeDiarization(String fileName) throws Exception {
+	public static Map<String, String> transcribeDiarization(String fileName, String pathGoogleCredentials) throws Exception {
 		// Cut wav file to 50s
 		cutAudioFile(fileName, fileName, 0, 50);
 
 		Map<String, String> filePathTime = new HashMap<>();
 
 		// Use this block of export google credentials
-		SpeechSettings speechSettings = setGoogleCredentials();
+		SpeechSettings speechSettings = setGoogleCredentials(pathGoogleCredentials);
 
 		try (SpeechClient speechClient = SpeechClient.create(speechSettings)) {
 			// The language of the supplied audio
@@ -135,8 +134,8 @@ public class Transcriber {
 		return filePathTime;
 	}
 
-	public static SpeechSettings setGoogleCredentials() throws FileNotFoundException, IOException {
-		FileInputStream credentialsStream = new FileInputStream(PATH_GOOGLE_CREDENTIALS_JSON);
+	public static SpeechSettings setGoogleCredentials(String pathGoogleCredentials) throws FileNotFoundException, IOException {
+		FileInputStream credentialsStream = new FileInputStream(pathGoogleCredentials);
 		GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream);
 		FixedCredentialsProvider credentialsProvider = FixedCredentialsProvider.create(credentials);
 		SpeechSettings speechSettings = SpeechSettings.newBuilder().setCredentialsProvider(credentialsProvider).build();
@@ -195,7 +194,7 @@ public class Transcriber {
 			fos.flush();
 			fos.close();
 		} catch (IOException e) {
-			LOGGER.log(Level.WARNING, "Exception: " + e);
+			LOGGER.log(Level.WARNING, "IOException: " + e);
 			return false;
 		}
 		return true;
@@ -230,12 +229,12 @@ public class Transcriber {
 	public static void writeHashMapToCsv(Map<String, String> map) {
 		String eol = System.getProperty("line.separator");
 
-		try (Writer writer = new FileWriter(PATH_TO_CSV + "results.csv", true)) {
+		try (Writer writer = new FileWriter(PATH_TO_CSV + "/results.csv", true)) {
 			for (Map.Entry<String, String> entry : map.entrySet()) {
 				writer.append(entry.getKey()).append(',').append(entry.getValue()).append(eol);
 			}
 		} catch (IOException ex) {
-			LOGGER.log(Level.WARNING, "Exception: " + ex);
+			LOGGER.log(Level.WARNING, "IOException: " + ex);
 		}
 	}
 }
