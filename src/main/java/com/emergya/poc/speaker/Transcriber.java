@@ -2,13 +2,11 @@ package com.emergya.poc.speaker;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.io.Writer;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +14,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.longrunning.OperationFuture;
@@ -37,9 +37,14 @@ import it.sauronsoftware.jave.MultimediaInfo;
 
 public class Transcriber {
 
+	private Transcriber() {
+		throw new IllegalStateException("Utility class");
+	}
+
 	private static final String SENTENCE = "en breves momentos le atenderemos";
 	private static final String PATH_TO_CSV = System.getProperty("user.dir");
 	private static final String PATH_GOOGLE_CREDENTIALS_JSON = "/home/ajherrera/Escritorio/speechtranscriber-321809-22a5f801cacd.json";
+	private static final Logger LOGGER = Logger.getLogger("[Transcriber log]");
 
 	public static Map<String, String> transcribeDiarization(String fileName) throws Exception {
 		// Cut wav file to 50s
@@ -48,10 +53,7 @@ public class Transcriber {
 		Map<String, String> filePathTime = new HashMap<>();
 
 		// Use this block of export google credentials
-		FileInputStream credentialsStream = new FileInputStream(PATH_GOOGLE_CREDENTIALS_JSON);
-		GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream);
-		FixedCredentialsProvider credentialsProvider = FixedCredentialsProvider.create(credentials);
-		SpeechSettings speechSettings = SpeechSettings.newBuilder().setCredentialsProvider(credentialsProvider).build();
+		SpeechSettings speechSettings = setGoogleCredentials();
 
 		try (SpeechClient speechClient = SpeechClient.create(speechSettings)) {
 			// The language of the supplied audio
@@ -63,12 +65,14 @@ public class Transcriber {
 
 			// Encoding of audio data sent. This sample sets this explicitly.
 			// This field is optional for FLAC and WAV audio formats.
-			// In this case, we process the audio as an mp3 encoding instead of a wav encoding
+			// In this case, we process the audio as an mp3 encoding instead of a wav
+			// encoding
 			// SetEnableWordTimeOffset get offset of each word
 			RecognitionConfig config = RecognitionConfig.newBuilder().setLanguageCode(languageCode)
 					.setSampleRateHertz(sampleRateHertz).setEncoding(AudioEncoding.MP3).setEnableWordTimeOffsets(true)
 					.build();
 
+			// Processes the audio and waits to get the response in an audio
 			Path path = Paths.get(fileName);
 			byte[] data = Files.readAllBytes(path);
 			ByteString content = ByteString.copyFrom(data);
@@ -80,7 +84,7 @@ public class Transcriber {
 					.longRunningRecognizeAsync(config, audio);
 
 			while (!response.isDone()) {
-				System.out.println("Waiting for response...");
+				LOGGER.log(Level.INFO, "Waiting for response...");
 				Thread.sleep(10000);
 			}
 
@@ -90,7 +94,7 @@ public class Transcriber {
 			for (SpeechRecognitionResult result : results) {
 				SpeechRecognitionAlternative alternative = result.getAlternativesList().get(0);
 
-				System.out.printf("Transcription: %s%n", alternative.getTranscript());
+				LOGGER.log(Level.INFO, "Transcription: " + alternative.getTranscript());
 				boolean firstAppear = true;
 				for (WordInfo wordInfo : alternative.getWordsList()) {
 					String timeAppareance = wordInfo.getStartTime().getSeconds() + "."
@@ -129,6 +133,14 @@ public class Transcriber {
 		writeHashMapToCsv(filePathTime);
 
 		return filePathTime;
+	}
+
+	public static SpeechSettings setGoogleCredentials() throws FileNotFoundException, IOException {
+		FileInputStream credentialsStream = new FileInputStream(PATH_GOOGLE_CREDENTIALS_JSON);
+		GoogleCredentials credentials = GoogleCredentials.fromStream(credentialsStream);
+		FixedCredentialsProvider credentialsProvider = FixedCredentialsProvider.create(credentials);
+		SpeechSettings speechSettings = SpeechSettings.newBuilder().setCredentialsProvider(credentialsProvider).build();
+		return speechSettings;
 	}
 
 	public static boolean cutAudioFile(String sourcefile, String targetfile, int start, int end) {
@@ -183,7 +195,7 @@ public class Transcriber {
 			fos.flush();
 			fos.close();
 		} catch (IOException e) {
-			e.printStackTrace();
+			LOGGER.log(Level.WARNING, "Exception: " + e);
 			return false;
 		}
 		return true;
@@ -198,7 +210,7 @@ public class Transcriber {
 				long ls = m.getDuration();
 				tlen = ls / 1000;
 			} catch (Exception e) {
-				e.printStackTrace();
+				LOGGER.log(Level.WARNING, "Exception: " + e);
 			}
 		}
 		return tlen;
@@ -223,7 +235,7 @@ public class Transcriber {
 				writer.append(entry.getKey()).append(',').append(entry.getValue()).append(eol);
 			}
 		} catch (IOException ex) {
-			ex.printStackTrace(System.err);
+			LOGGER.log(Level.WARNING, "Exception: " + ex);
 		}
 	}
 }
