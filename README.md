@@ -9,3 +9,8 @@ Finally we save the result in a csv, in case of finding the phrase the second wh
 To test it, you must add the google credentials to use the speech-to-text tool, and change the path where the csv will be saved.
 
 The input argument corresponds to the file where the audio is in .wav format.
+
+
+Arguments:
+[0] Path to folder containing wav files
+[1] Path to the json containing the google key
