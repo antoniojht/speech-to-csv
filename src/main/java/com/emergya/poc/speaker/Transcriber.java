@@ -5,7 +5,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.io.Writer;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,7 +38,7 @@ import it.sauronsoftware.jave.MultimediaInfo;
 public class Transcriber {
 
 	private static final String SENTENCE = "en breves momentos le atenderemos";
-	private static final String PATH_TO_CSV = "/home/ajherrera/Escritorio/";
+	private static final String PATH_TO_CSV = System.getProperty("user.dir");
 	private static final String PATH_GOOGLE_CREDENTIALS_JSON = "/home/ajherrera/Escritorio/speechtranscriber-321809-22a5f801cacd.json";
 
 	public static Map<String, String> transcribeDiarization(String fileName) throws Exception {
