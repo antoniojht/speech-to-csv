@@ -14,8 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.sound.sampled.UnsupportedAudioFileException;
-
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.api.gax.longrunning.OperationFuture;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -38,11 +36,11 @@ public class Transcriber {
 
 	private static final String SENTENCE = "en breves momentos le atenderemos";
 	private static final String PATH_TO_CSV = "/home/ajherrera/Escritorio/";
-	private static final String PATH_GOOGLE_CREDENTIALS_JSON = "";
+	private static final String PATH_GOOGLE_CREDENTIALS_JSON = "/home/ajherrera/Escritorio/speechtranscriber-321809-22a5f801cacd.json";
 
 	public static Map<String, String> transcribeDiarization(String fileName) throws Exception {
 		// Cut wav file to 50s
-		cut(fileName, fileName, 0, 50);
+		cutAudioFile(fileName, fileName, 0, 50);
 
 		Map<String, String> filePathTime = new HashMap<>();
 
@@ -62,7 +60,7 @@ public class Transcriber {
 
 			// Encoding of audio data sent. This sample sets this explicitly.
 			// This field is optional for FLAC and WAV audio formats.
-
+			// In this case, we process the audio as an mp3 encoding instead of a wav encoding
 			// SetEnableWordTimeOffset get offset of each word
 			RecognitionConfig config = RecognitionConfig.newBuilder().setLanguageCode(languageCode)
 					.setSampleRateHertz(sampleRateHertz).setEncoding(AudioEncoding.MP3).setEnableWordTimeOffsets(true)
@@ -130,8 +128,7 @@ public class Transcriber {
 		return filePathTime;
 	}
 
-	public static boolean cut(String sourcefile, String targetfile, int start, int end)
-			throws UnsupportedAudioFileException {
+	public static boolean cutAudioFile(String sourcefile, String targetfile, int start, int end) {
 		try {
 			if (!sourcefile.toLowerCase().endsWith(".wav") || !targetfile.toLowerCase().endsWith(".wav")) {
 				return false;
@@ -140,7 +137,7 @@ public class Transcriber {
 			if (!wav.exists()) {
 				return false;
 			}
-			long t1 = getTimeLen(wav);
+			long t1 = getTimeLength(wav);
 			if (start < 0 || end <= 0 || start >= t1 || end > t1 || start >= end) {
 				return false;
 			}
@@ -189,7 +186,7 @@ public class Transcriber {
 		return true;
 	}
 
-	public static long getTimeLen(File file) {
+	public static long getTimeLength(File file) {
 		long tlen = 0;
 		if (file != null && file.exists()) {
 			Encoder encoder = new Encoder();
@@ -215,7 +212,7 @@ public class Transcriber {
 		return array;
 	}
 
-	public static void writeHashMapToCsv(Map<String, String> map) throws Exception {
+	public static void writeHashMapToCsv(Map<String, String> map) {
 		String eol = System.getProperty("line.separator");
 
 		try (Writer writer = new FileWriter(PATH_TO_CSV + "results.csv", true)) {
